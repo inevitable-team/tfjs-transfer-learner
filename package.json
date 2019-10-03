@@ -1,0 +1,29 @@
+{
+  "name": "@inevitable/tfjs-transfer-learner",
+  "version": "1.0.0",
+  "description": "Retrain the MobileNet model via transfer learning using TensorFlow.js in NodeJS.",
+  "main": "transferLearner.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/inevitable-team/tfjs-transfer-learner.git"
+  },
+  "keywords": [
+    "tfjs",
+    "ai",
+    "ml",
+    "retrain",
+    "transfer",
+    "model",
+    "mobilenet",
+    "classifier"
+  ],
+  "author": "Sean O'Mahoney",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/inevitable-team/tfjs-transfer-learner/issues"
+  },
+  "homepage": "https://github.com/inevitable-team/tfjs-transfer-learner#readme"
+}

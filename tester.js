@@ -10,6 +10,8 @@ async function runner(config) {
     console.table(transferLearnerTester.prettyConfusionMatrix());
     console.log("Accuracy: ", transferLearnerTester.accuracy() + "%");
 
+    console.log("Benchmark: ", transferLearnerTester.benchmarkResults());
+
     let onePrediction = await transferLearnerTester.predictOne(`${__dirname}/example_dataset/green/1.png`);
     console.log("Predict One Prediction: ", onePrediction);
 }

@@ -19,21 +19,24 @@ class transferLearner {
         this.classes = null;
         this.trained = false;
         this.confusionMatrix = null;
+        // Benchmarking Values
+        this.setUpTimeSecs = null;
+        this.trainTimeSecs = null;
+        this.evaluateTimeSecs = null;
     }
 
     async setup() {
+        let setUpStart = new Date();
         await this.getFeatureExtractorAndShape();
         this.getImageData();
         await this.getTrainingImages();
         this.generateModel();
+        this.setUpTimeSecs = (new Date() - setUpStart) / 1000;
     }
 
     async train() {
         if (this.classes == null && this.featureExtractor == undefined) {
-            await this.getFeatureExtractorAndShape();
-            this.getImageData();
-            await this.getTrainingImages();
-            this.generateModel();
+            await this.setup();
         }   await this.trainModel();
         return null;
     }
@@ -87,7 +90,9 @@ class transferLearner {
 
     async trainModel() {
         if (this.model != undefined) {
+            let trainStart = new Date();
             const trainedModel = await this.model.fit(this.trainingImageTensorData.xs, this.trainingImageTensorData.ys, { batchSize: this.batchSize, epochs: this.epochs });
+            this.trainTimeSecs = (new Date() - trainStart) / 1000;
             this.trainingImageTensorData.xs.dispose();
             this.trainingImageTensorData.ys.dispose();
             this.trained = true;
@@ -99,7 +104,9 @@ class transferLearner {
         return new Promise(resolve => {
             if (this.trained) {
                 if (!this.onlyTesting) {
+                    let evaluateStart = new Date();
                     this._eval(this.model, this.testingData, this.classes, this.featureExtractor).then(matrix => {
+                        this.evaluateTimeSecs = (new Date() - evaluateStart) / 1000;
                         this.confusionMatrix = matrix;
                         resolve(matrix);
                     });
@@ -126,6 +133,31 @@ class transferLearner {
             let total = this.confusionMatrix.reduce((a, b) => a.concat(b)).reduce((a, b) => a + b);
             return parseFloat(((correct / total) * 100).toFixed(2));
         } else { throw new Error("No confusion matrix to fetch!"); }
+    }
+
+    benchmarkResults() {
+        if (this.trained) {
+            return {
+                setUpTime: this.setUpTimeSecs,
+                trainTime: this.trainTimeSecs,
+                evaluateTime: this.evaluateTimeSecs,
+                confusionMatrix: this.confusionMatrix,
+                confusionMatrixObj: this.prettyConfusionMatrix(),
+                accuracy: this.accuracy(),
+                allClasses: this.classes,
+                trainingImages: this._countClasses(this.classes, this.trainingData),
+                totalTrainingImages: this.trainingData.length,
+                testingImages: this.testingData ? this._countClasses(this.classes, this.testingData) : {},
+                totalTestingImages: this.testingData ? this.testingData.length : 0,
+                epochs: this.epochs,
+                split: this.split,
+                batchSize: this.batchSize,
+                optimizer: this.optimizer
+            }
+        } else {
+            console.log("Please train the model before trying to benchmark!");
+            return null;
+        }
     }
 
     async predictOne(imageUrl) {
@@ -166,23 +198,26 @@ class transferLearner {
     }
 
     async _generateTensorData(classes, imageMetas, featureExtractor) {
-    
-        let images = await Promise.all(imageMetas.map(async imageMeta => await sharp(imageMeta.location).resize({
+        let dataset = new datasetWrapper();
+
+        for (let i = 0; i < imageMetas.length; i++) {
+            dataset.addExample(
+                featureExtractor.predict(this.tf.tensor4d([...await this._imgSrcToBuffer(imageMetas[i].location)], [1].concat(this.oldModelImageShape) )), 
+                classes.map(cat => cat == imageMetas[i].model ? 1 : 0), 
+                classes.length
+            );
+        }
+
+        return { xs: dataset.xs, ys: dataset.ys };
+    }
+
+    // Ensure the Image Data in the correct format to store for the feature extractor
+    async _imgSrcToBuffer(src) {
+        return await sharp(src).resize({
             width: this.oldModelImageSize,
             height: this.oldModelImageSize,
             fit: sharp.fit.fill
-        }).removeAlpha().raw().toBuffer()));
-
-        // Setting up Data for TFjs
-        let dataset = new datasetWrapper();
-        images.forEach((buffer, i) => dataset.addExample(
-            featureExtractor.predict(this.tf.tensor4d([...buffer], [1].concat(this.oldModelImageShape) )), 
-            classes.map(cat => cat == imageMetas[i].model ? 1 : 0), 
-            classes.length
-        ));
-
-        return { xs: dataset.xs, ys: dataset.ys };
-
+        }).removeAlpha().raw().toBuffer();
     }
 
     _getImages(sourceFolder) {
@@ -203,7 +238,7 @@ class transferLearner {
 
     async _eval(model, testingData, classes, featureExtractor) {
         return new Promise(resolve => {
-            let total = testingData.length, correct = 0, matrix = new Array(classes.length).fill(0).map(() => new Array(classes.length).fill(0));
+            let matrix = new Array(classes.length).fill(0).map(() => new Array(classes.length).fill(0));
             Promise.all(testingData.map(item => this._generateTensorData(classes, [item], featureExtractor))).then(inputs => {
                 testingData.forEach(async (item, i) => {
                     let results = model.predict(inputs[i].xs);
@@ -227,6 +262,12 @@ class transferLearner {
         for (let url of urlsArray) {
             if (!fs.existsSync(url)) return false;
         } return true;
+    }
+
+    _countClasses(classes, imageData) {
+        return classes.map(item => {
+            return { class: item, count: imageData.filter(image => image.model == item).length }
+        });
     }
 
 }

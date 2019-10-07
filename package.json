@@ -4,7 +4,7 @@
   "description": "Retrain the MobileNet model via transfer learning using TensorFlow.js in NodeJS.",
   "main": "transferLearner.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node tester.js"
   },
   "repository": {
     "type": "git",

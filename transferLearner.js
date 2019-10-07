@@ -1,7 +1,8 @@
-const tf = require("@tensorflow/tfjs-node"), sharp = require("sharp"), fs = require("fs"), datasetWrapper = require("./datasetWrapper");
+const sharp = require("sharp"), fs = require("fs"), datasetWrapper = require("./datasetWrapper");
 
 class transferLearner {
     constructor(config) {
+        this.tf = config.tf || require("@tensorflow/tfjs-node"); // Optional: TF, enables the gpu package to be passed in
         this.onlyTesting = config.onlyTesting || false; // Optional: Boolean, true if you want to test via other means and use the "predictOne" function
         this.split = config.split || 0.75; // Optional: Float, vary the difference in training and testing data, 0.75 = 75% of the images will be used for training
         this.oldModel = config.oldModel || null;  // Optional: tf.model(), Only pass if you do not wish to download and use the model from the oldModelUrl
@@ -11,7 +12,7 @@ class transferLearner {
         this.oldModelImageShape = config.oldModelImageShape || [this.oldModelImageSize, this.oldModelImageSize, 3];  // Optional, using the input size to get the shape
         this.imagesUrl = config.imagesUrl || `${__dirname}/example_dataset`;  // Optional: String, specify the location of where the source folder is of the images
         this.lossFunction = config.lossFunction || 'categoricalCrossentropy';  // Optional: String, loss function for the models training phase
-        this.optimizer = config.optimizer || tf.train.adam();  // Optional: tf.train / String, optimizer for the models training phase
+        this.optimizer = config.optimizer || this.tf.train.adam();  // Optional: tf.train / String, optimizer for the models training phase
         this.epochs = config.epochs || 5;  // Optional: Number, specify the amount of epoches to be run during the training phase
         this.batchSize = config.batchSize || 8; // Optional: Number, specify the size of batchs to be run during the training phase
         // Internal Values
@@ -38,9 +39,9 @@ class transferLearner {
     }
 
     async getFeatureExtractorAndShape() {
-        if (this.oldModel == null) this.oldModel = await tf.loadLayersModel(this.oldModelUrl);
+        if (this.oldModel == null) this.oldModel = await this.tf.loadLayersModel(this.oldModelUrl);
         let layer = this.oldModel.getLayer(this.oldModelLayer);
-        this.featureExtractor = tf.model({inputs: this.oldModel.inputs, outputs: layer.output});
+        this.featureExtractor = this.tf.model({inputs: this.oldModel.inputs, outputs: layer.output});
         this.modelLayerShape = layer.outputShape.slice(1); 
         return null;  
     }
@@ -142,16 +143,16 @@ class transferLearner {
     // Other Functions
 
     _createModel(classesNum, inputShape) {
-        const m = tf.sequential({
+        const m = this.tf.sequential({
             layers: [
-                tf.layers.flatten({inputShape: inputShape}),
-                tf.layers.dense({
+                this.tf.layers.flatten({inputShape: inputShape}),
+                this.tf.layers.dense({
                     units: 100,
                     activation: 'relu',
                     kernelInitializer: 'varianceScaling',
                     useBias: true
                 }),
-                tf.layers.dense({
+                this.tf.layers.dense({
                     units: classesNum,
                     kernelInitializer: 'varianceScaling',
                     useBias: false,
@@ -175,7 +176,7 @@ class transferLearner {
         // Setting up Data for TFjs
         let dataset = new datasetWrapper();
         images.forEach((buffer, i) => dataset.addExample(
-            featureExtractor.predict(tf.tensor4d([...buffer], [1].concat(this.oldModelImageShape) )), 
+            featureExtractor.predict(this.tf.tensor4d([...buffer], [1].concat(this.oldModelImageShape) )), 
             classes.map(cat => cat == imageMetas[i].model ? 1 : 0), 
             classes.length
         ));

@@ -4,6 +4,11 @@ class transferLearner {
     constructor(config) {
         this.tf = config.tf || require("@tensorflow/tfjs-node"); // Optional: TF, enables the gpu package to be passed in
         this.onlyTesting = config.onlyTesting || false; // Optional: Boolean, true if you want to test via other means and use the "predictOne" function
+        this.imageLimiter = config.imageLimiter || false; // Optional: Number, % of images to use, 0.9 turns 100 images to 90 images to use (then being split into training and testing data)
+        // this.trainingImageTotalLimit = config.trainingImageTotalLimit || false;
+        // this.trainingImageClassLimit = config.trainingImageClassLimit || false;
+        // this.testingImageTotalLimit = config.testingImageTotalLimit || false;
+        // this.testingImageClassLimit = config.testingImageClassLimit || false;
         this.split = config.split || 0.75; // Optional: Float, vary the difference in training and testing data, 0.75 = 75% of the images will be used for training
         this.oldModel = config.oldModel || null;  // Optional: tf.model(), Only pass if you do not wish to download and use the model from the oldModelUrl
         this.oldModelUrl = config.oldModelUrl || 'https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_0.25_224/model.json';  // Optional: URL / String
@@ -71,7 +76,8 @@ class transferLearner {
                     this.trainingData = imageMetaData.slice(0, Math.floor(imageMetaData.length * this.split));
                     this.testingData = imageMetaData.slice(Math.ceil(imageMetaData.length * this.split), imageMetaData.length);
                 }
-            } // If root folder doesn't exist
+            }   this._limitImageData();
+            // If root folder doesn't exist
         } else { throw new Error('Filepath not found, please update the "imagesUrl" to the correct filepath.'); }
     }
 
@@ -91,7 +97,7 @@ class transferLearner {
     async trainModel() {
         if (this.model != undefined) {
             let trainStart = new Date();
-            const trainedModel = await this.model.fit(this.trainingImageTensorData.xs, this.trainingImageTensorData.ys, { batchSize: this.batchSize, epochs: this.epochs });
+            this.trainingHistory = await this.model.fit(this.trainingImageTensorData.xs, this.trainingImageTensorData.ys, { batchSize: this.batchSize, epochs: this.epochs });
             this.trainTimeSecs = (new Date() - trainStart) / 1000;
             this.trainingImageTensorData.xs.dispose();
             this.trainingImageTensorData.ys.dispose();
@@ -173,6 +179,20 @@ class transferLearner {
     }
 
     // Other Functions
+
+    _limitImageData() {
+        if (this.imageLimiter) {
+            this.trainingData = this._limitClassesByPercentage(this.trainingData, this.classes, this.imageLimiter);
+            if (!this.onlyTesting) this.testingData = this._limitClassesByPercentage(this.testingData, this.classes, this.imageLimiter);
+        }
+    }
+
+    _limitClassesByPercentage(data, classes, percentage) {
+        let splitClasses = classes.map(c => data.filter(d => d.model == c));
+        let limitedSplitClasses = splitClasses.map(classArr => classArr.splice(0, Math.floor(classArr.length * percentage)));
+        let flattered = [].concat.apply([], limitedSplitClasses);
+        return this._shuffleArray(flattered);
+    }
 
     _createModel(classesNum, inputShape) {
         const m = this.tf.sequential({

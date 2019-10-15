@@ -13,7 +13,7 @@ class transferLearner {
         this.oldModel = config.oldModel || null;  // Optional: tf.model(), Only pass if you do not wish to download and use the model from the oldModelUrl
         this.oldModelUrl = config.oldModelUrl || 'https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_0.25_224/model.json';  // Optional: URL / String
         this.oldModelLayer = config.oldModelLayer || 'conv_pw_13_relu';  // Optional: String, which layer of the old model to be used as the feature extractor
-        this.loadLayersModelStrict = config.loadLayersModelStrict || false; // Option: Boolean, https://js.tensorflow.org/api/latest/#loadLayersModel
+        this.loadLayersModelStrict = config.loadLayersModelStrict == undefined ? true : config.loadLayersModelStrict; // Option: Boolean, https://js.tensorflow.org/api/latest/#loadLayersModel
         this.oldModelImageSize = config.oldModelImageSize || 224;  // Optional: Number, specifiy the input width/height of the old model
         this.oldModelImageShape = config.oldModelImageShape || [this.oldModelImageSize, this.oldModelImageSize, 3];  // Optional, using the input size to get the shape
         this.imagesUrl = config.imagesUrl || `${__dirname}/example_dataset`;  // Optional: String, specify the location of where the source folder is of the images

@@ -1,6 +1,6 @@
 {
   "name": "@inevitable/tfjs-transfer-learner",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "Retrain the MobileNet model via transfer learning using TensorFlow.js in NodeJS.",
   "main": "transferLearner.js",
   "scripts": {

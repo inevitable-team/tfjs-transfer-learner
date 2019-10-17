@@ -167,6 +167,16 @@ class transferLearner {
         }
     }
 
+    async predictOneFromFileBuffer(imageBuffer) {
+        if (this.trained) {
+            let imageTensorData = await this._generateTensorData(this.classes, [{ location: imageBuffer }], this.featureExtractor);
+            let results = this.model.predict(imageTensorData.xs);
+            let argMax = results.argMax(1);
+            let predictedIndex = argMax.dataSync()[0];
+            return this.classes[predictedIndex];
+        } else { throw new Error("Model needs to be trained before it can predict!"); }
+    }
+
     async predictOne(imageUrl) {
         if (this.trained) {
             if (fs.existsSync(imageUrl)) {

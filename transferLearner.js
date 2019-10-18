@@ -167,9 +167,9 @@ class transferLearner {
         }
     }
 
-    async predictOneFromFileBuffer(imageBuffer, raw) {
+    async predictOneFromFileBuffer(imageBuffer) {
         if (this.trained) {
-            let imageTensorData = await this._generateOneTensorData(this.classes, [{ data: imageBuffer, raw: raw }], this.featureExtractor);
+            let imageTensorData = await this._generateTensorData(this.classes, [{ location: imageBuffer }], this.featureExtractor);
             let results = this.model.predict(imageTensorData.xs);
             let argMax = results.argMax(1);
             let predictedIndex = argMax.dataSync()[0];
@@ -228,20 +228,6 @@ class transferLearner {
         return m;
     }
 
-    async _generateOneTensorData(classes, images, featureExtractor) {
-        let dataset = new datasetWrapper();
-
-        for (let i = 0; i < images.length; i++) {
-            dataset.addExample(
-                featureExtractor.predict(this.tf.tensor4d([...await this._imgDataToBuffer(images[i].data, images[i].meta)], [1].concat(this.oldModelImageShape) )), 
-                classes.map(cat => cat == imageMetas[i].model ? 1 : 0), 
-                classes.length
-            );
-        }
-
-        return { xs: dataset.xs, ys: dataset.ys };
-    }
-
     async _generateTensorData(classes, imageMetas, featureExtractor) {
         let dataset = new datasetWrapper();
 
@@ -254,14 +240,6 @@ class transferLearner {
         }
 
         return { xs: dataset.xs, ys: dataset.ys };
-    }
-
-    async _imgDataToBuffer(data, meta) {
-        return await sharp(data, meta).resize({
-            width: this.oldModelImageSize,
-            height: this.oldModelImageSize,
-            fit: sharp.fit.fill
-        }).removeAlpha().raw().toBuffer();
     }
 
     // Ensure the Image Data in the correct format to store for the feature extractor

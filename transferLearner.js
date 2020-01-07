@@ -117,8 +117,8 @@ class transferLearner {
                         this.confusionMatrix = matrix;
                         resolve(matrix);
                     });
-                } else { throw new Error(`No testing data in order to evaluate the model, try "evaluateFromImageFolder", "evaluateFromImageUrls" or "PredictOne"!`); resolve(null); }
-            } else { throw new Error("Model needs to be trained in order to evaluate it!"); resolve(null); }
+                } else { throw new Error(`No testing data in order to evaluate the model, try "evaluateFromImageFolder", "evaluateFromImageUrls" or "PredictOne"!`); }
+            } else { throw new Error("Model needs to be trained in order to evaluate it!"); }
         });
     }
 

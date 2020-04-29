@@ -189,6 +189,19 @@ class transferLearner {
         } else { throw new Error("Model needs to be trained before it can predict!"); }
     }
 
+    async predictValues(imageUrl) {
+		if (this.trained) {
+			if (fs.existsSync(imageUrl)) {
+				let imageTensorData = await this._generateTensorData(this.classes, [{ location: imageUrl }], this.featureExtractor);
+				let results = this.model.predict(imageTensorData.xs, this.classes);
+				return results.as1D().dataSync().reduce((res, val, i) => {
+					res.push({ label: this.classes[i], confidence: val });
+					return res;
+				}, []);
+			} else { throw new Error("Image does not exist!"); }
+		} else { throw new Error("Model needs to be trained before it can predict!"); }
+	}
+
     // Other Functions
 
     _limitImageData() {

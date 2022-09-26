@@ -27,8 +27,8 @@
   },
   "homepage": "https://github.com/inevitable-team/tfjs-transfer-learner#readme",
   "dependencies": {
-    "@tensorflow/tfjs-node": "1.2.10",
+    "@tensorflow/tfjs-node": "3.9.0",
     "fs": "0.0.1-security",
-    "sharp": "^0.23.1"
+    "sharp": "^0.30.5"
   }
 }
